@@ -71,4 +71,3 @@ python -m unittest discover -s tests -v
 - 件名の語とGmailラベルを使う単純な推定です。価値判断の自動化や見落としゼロは保証できません。
 - `gmail.metadata`ではGmailの検索文字列をAPIで使えないため、対象は受信トレイの新しい順に指定件数を取得します。[Gmail API仕様](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/list)
 - 購読解除の最終判断はGmailで行います。企業単位の一括解除では、必要な配信も止まる場合があります。[Gmail公式ヘルプ](https://support.google.com/mail/answer/15621070?co=GENIE.Platform%3DDesktop&hl=en-GB)
-
