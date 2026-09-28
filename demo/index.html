@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>メール整理シミュレーター | Gmail Triage Lab</title>
+  <style>
+    :root { color-scheme: light; --bg:#f6f8fc; --paper:#fff; --ink:#202638; --sub:#586375; --line:#dfe5ed; --blue:#2456a6; --blue-soft:#e8f0fe; --green:#126348; --green-soft:#e6f4ea; --orange:#975609; --orange-soft:#fff4de; --red:#a12d2d; --red-soft:#fce8e8; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Yu Gothic",Meiryo,sans-serif; }
+    button, select { font:inherit; }
+    button { cursor:pointer; }
+    button:focus-visible, select:focus-visible { outline:3px solid #6b9bff; outline-offset:2px; }
+    .top { background:var(--paper); border-bottom:1px solid var(--line); padding:18px max(20px,calc((100vw - 1240px)/2)); display:flex; justify-content:space-between; gap:16px; align-items:center; }
+    h1 { font-size:22px; margin:0 0 2px; }
+    h2 { font-size:17px; margin:0 0 12px; }
+    h3 { font-size:15px; margin:0 0 6px; }
+    p { margin:0; }
+    .subtitle, .muted { color:var(--sub); }
+    .top .subtitle { font-size:13px; }
+    .shell { max-width:1240px; margin:auto; padding:20px; }
+    .intro { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:17px; }
+    .intro p { max-width:760px; }
+    .layout { display:grid; grid-template-columns:275px minmax(0,1fr); gap:16px; align-items:start; }
+    .panel { background:var(--paper); border:1px solid var(--line); border-radius:14px; box-shadow:0 2px 9px #1c38500a; }
+    .settings, .detail { padding:17px; }
+    .settings section + section { border-top:1px solid var(--line); margin-top:17px; padding-top:17px; }
+    .option { display:flex; gap:9px; align-items:flex-start; padding:6px 0; }
+    .option input { margin-top:4px; }
+    .option span { display:block; }
+    .option small { color:var(--sub); display:block; }
+    .btn { border:1px solid var(--line); background:var(--paper); color:var(--ink); border-radius:8px; padding:8px 11px; }
+    .btn:hover { background:var(--blue-soft); }
+    .btn.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
+    .btn.primary:hover { background:#174887; }
+    .btn.danger { color:var(--red); }
+    .btn:disabled { opacity:.5; cursor:default; }
+    .btn.small { padding:5px 8px; font-size:13px; }
+    .stack { display:grid; gap:16px; min-width:0; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+    .stat { padding:12px 14px; }
+    .stat strong { display:block; font-size:24px; line-height:1.2; font-variant-numeric:tabular-nums; }
+    .stat span { font-size:12px; color:var(--sub); }
+    .stat.alert { background:var(--red-soft); border-color:#f2b9b9; }
+    .mailbox { min-width:0; overflow:hidden; }
+    .mailbox-head { padding:14px 16px; display:flex; justify-content:space-between; gap:10px; align-items:center; border-bottom:1px solid var(--line); }
+    .mailbox-head h2 { margin:0; }
+    .tabs { display:flex; gap:5px; padding:9px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+    .tabs button { border:0; background:transparent; border-radius:8px; padding:7px 10px; color:var(--sub); }
+    .tabs button.active { background:var(--blue-soft); color:var(--blue); font-weight:600; }
+    .group-title { padding:9px 16px; background:#f9fbfe; color:var(--sub); font-size:12px; font-weight:600; border-bottom:1px solid var(--line); }
+    .mail { width:100%; display:grid; grid-template-columns:30px minmax(125px,175px) minmax(0,1fr) auto; gap:10px; align-items:center; border:0; border-bottom:1px solid var(--line); background:var(--paper); padding:12px 16px; text-align:left; color:var(--ink); }
+    .mail:hover, .mail.selected { background:var(--blue-soft); }
+    .mail.unread .who, .mail.unread .subject { font-weight:700; }
+    .mail .subject { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .mail .who { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .icons { display:flex; gap:3px; align-items:center; }
+    .tag { display:inline-block; border-radius:999px; padding:2px 7px; font-size:11px; white-space:nowrap; background:#eef1f4; color:#465164; }
+    .tag.protected { background:var(--green-soft); color:var(--green); }
+    .tag.important { background:var(--orange-soft); color:var(--orange); }
+    .tag.starred { background:var(--blue-soft); color:var(--blue); }
+    .mail .tags { display:flex; gap:3px; }
+    .empty { padding:26px 16px; color:var(--sub); }
+    .detail { min-height:185px; }
+    .detail .from { color:var(--sub); font-size:13px; margin-bottom:12px; overflow-wrap:anywhere; }
+    .detail .body { color:var(--sub); margin:0 0 17px; }
+    .actions { display:flex; flex-wrap:wrap; gap:7px; }
+    .notice { margin-top:12px; border-radius:9px; padding:10px 12px; background:var(--orange-soft); color:#674200; font-size:13px; }
+    .feedback { border-left:4px solid var(--blue); background:var(--blue-soft); padding:12px 14px; border-radius:8px; }
+    .feedback.warn { background:var(--red-soft); border-color:var(--red); }
+    .feedback p { margin-top:4px; }
+    .subscription { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; padding:11px 0; border-top:1px solid var(--line); }
+    .subscription:first-of-type { border-top:0; }
+    .subscription strong { display:block; }
+    .subscription small { display:block; color:var(--sub); }
+    .subscription .controls { display:flex; flex-wrap:wrap; justify-content:end; gap:5px; }
+    .hint { font-size:12px; color:var(--sub); margin-top:10px; }
+    details.panel { padding:15px 17px; }
+    details summary { cursor:pointer; font-weight:600; }
+    details ul { margin:10px 0 0; padding-left:21px; color:var(--sub); }
+    @media (max-width:860px) { .layout { grid-template-columns:1fr; } .settings { display:grid; grid-template-columns:1fr 1fr; gap:16px; } .settings section + section { border:0; margin:0; padding:0; } }
+    @media (max-width:620px) { .top,.intro { align-items:flex-start; flex-direction:column; } .stats { grid-template-columns:repeat(2,1fr); } .settings { display:block; } .settings section + section { border-top:1px solid var(--line); margin-top:17px; padding-top:17px; } .mail { grid-template-columns:22px minmax(75px,110px) minmax(0,1fr); padding:11px; gap:6px; } .mail .tags { display:none; } .subscription { grid-template-columns:1fr; } .subscription .controls { justify-content:start; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div><h1>メール整理シミュレーター</h1><p class="subtitle">架空の受信トレイです。Gmailや外部サービスには接続しません。</p></div>
+    <button class="btn" id="reset" type="button">最初から試す</button>
+  </header>
+  <main class="shell">
+    <div class="intro"><p>まず表示方法を切り替え、メールを1通選んで操作してみてください。「次の週を受信」で、配信停止や保管ルールの効果を確認できます。</p><button class="btn primary" id="next-week" type="button">次の週を受信</button></div>
+    <div class="layout">
+      <aside class="panel settings" aria-label="整理方法の設定">
+        <section><h2>受信トレイの表示</h2>
+          <label class="option"><input type="radio" name="view" value="priority" checked><span>優先トレイ<small>重要な未読、スター、その他の順</small></span></label>
+          <label class="option"><input type="radio" name="view" value="category"><span>カテゴリ別<small>メイン、更新、プロモーションを分ける</small></span></label>
+          <label class="option"><input type="radio" name="view" value="unread"><span>未読を先頭<small>重要度によらず未読を並べる</small></span></label>
+        </section>
+        <section><h2>新着メールのルール</h2>
+          <label class="option"><input type="checkbox" id="quiet-news"><span>読み物は「後で読む」へ<small>次の週のニュースレターを自動保管</small></span></label>
+          <p class="hint">保護ラベルとスターは、選んだメールに手動で付けられます。</p>
+        </section>
+      </aside>
+      <div class="stack">
+        <div class="stats" aria-live="polite">
+          <div class="panel stat"><strong id="stat-inbox">0</strong><span>受信トレイ</span></div>
+          <div class="panel stat"><strong id="stat-unread">0</strong><span>未読</span></div>
+          <div class="panel stat"><strong id="stat-stopped">0</strong><span>停止した配信</span></div>
+          <div class="panel stat" id="risk-card"><strong id="stat-risk">0</strong><span>見落とし候補</span></div>
+        </div>
+        <div class="feedback" id="feedback" aria-live="polite"><strong>試す順番</strong><p>企業の販促メールを選び、個別の配信停止と送信者一括停止の違いを見てください。</p></div>
+        <section class="panel mailbox" aria-label="架空の受信トレイ"><div class="mailbox-head"><h2>受信トレイ</h2><span class="muted" id="mailbox-count"></span></div><div class="tabs" id="tabs" hidden></div><div id="mail-list"></div></section>
+        <section class="panel detail" id="detail" aria-live="polite"></section>
+        <section class="panel detail" aria-label="配信の管理"><h2>配信の管理</h2><div id="subscriptions"></div><p class="hint">この画面の停止操作は架空です。すでに届いたメールは消えず、次の週の新着だけに反映されます。</p></section>
+        <details class="panel"><summary>このデモだけでは判断できないこと</summary><ul><li>重要メールがプロモーションや迷惑メールに誤分類される頻度</li><li>企業が複数の差出人アドレスや配信リストを使う場合</li><li>件名から重要性を判断できない個人連絡や期限</li><li>過去の大量メール、会話内で内容が混在するメール</li><li>配信停止が実際に反映されるまでの時間と、各社の通知設定</li></ul><p class="hint">実アカウントでは少量のメールを確認し、ルールを1つずつ試してから広げます。</p></details>
+      </div>
+    </div>
+  </main>
+  <script>
+    const seed = [
+      {id:'friend',from:'友人',address:'friend@example.net',subject:'来週の予定について',body:'返事を待っている架空の連絡です。',category:'primary',unread:true,important:false,starred:false,protected:false,inbox:true,needsAction:true},
+      {id:'bank',from:'銀行の通知',address:'notice@sample-bank.example',subject:'ログインに関するセキュリティ通知',body:'確認したい架空のセキュリティ通知です。',category:'updates',unread:true,important:true,starred:false,protected:true,inbox:true,needsAction:true},
+      {id:'promo1',from:'サンプル商店',address:'news@sample-shop.example',subject:'週末セール',body:'架空の販促メールです。',category:'promotions',list:'shop-news',unread:true,important:false,starred:false,protected:false,inbox:true,needsAction:false},
+      {id:'promo2',from:'サンプル商店',address:'news@sample-shop.example',subject:'クーポンのお知らせ',body:'同じ配信リストから届いた架空の販促メールです。',category:'promotions',list:'shop-news',unread:false,important:false,starred:false,protected:false,inbox:true,needsAction:false},
+      {id:'receipt',from:'サンプル商店',address:'news@sample-shop.example',subject:'注文の領収書',body:'販促メールと同じ差出人から届いた架空の領収書です。',category:'updates',unread:true,important:true,starred:false,protected:true,inbox:true,needsAction:false},
+      {id:'booking',from:'サンプル旅行',address:'reserve@sample-travel.example',subject:'予約の最終確認',body:'重要なのにプロモーションへ分類された架空の予約確認です。',category:'promotions',unread:true,important:false,starred:false,protected:true,inbox:true,needsAction:true},
+      {id:'journal',from:'週刊サンプル',address:'weekly@sample-journal.example',subject:'今週の記事',body:'読んでみたい架空のニュースレターです。',category:'primary',list:'journal',unread:true,important:false,starred:false,protected:false,inbox:true,needsAction:false}
+    ];
+    const future = [
+      {id:'f-promo',from:'サンプル商店',address:'news@sample-shop.example',subject:'来週のセール',body:'翌週の架空の販促メールです。',category:'promotions',list:'shop-news',unread:true,important:false,starred:false,protected:false,inbox:true,needsAction:false},
+      {id:'f-receipt',from:'サンプル商店',address:'news@sample-shop.example',subject:'新しい注文の確認',body:'翌週に届いた架空の注文確認です。',category:'updates',unread:true,important:true,starred:false,protected:true,inbox:true,needsAction:true},
+      {id:'f-journal',from:'週刊サンプル',address:'weekly@sample-journal.example',subject:'次週の記事',body:'翌週の架空のニュースレターです。',category:'primary',list:'journal',unread:true,important:false,starred:false,protected:false,inbox:true,needsAction:false},
+      {id:'f-friend',from:'友人',address:'friend@example.net',subject:'予定の確認',body:'翌週の架空の個人連絡です。',category:'primary',unread:true,important:false,starred:false,protected:false,inbox:true,needsAction:true}
+    ];
+    const clone = x => JSON.parse(JSON.stringify(x));
+    const escapeHtml = x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    let state;
+    function reset() { state={messages:clone(seed),view:'priority',tab:'primary',selected:'promo1',stopped:new Set(),senderStopped:new Set(),quiet:new Set(),week:false}; document.querySelector('input[name="view"][value="priority"]').checked=true; document.getElementById('quiet-news').checked=false; document.getElementById('next-week').disabled=false; feedback('試す順番','企業の販促メールを選び、個別の配信停止と送信者一括停止の違いを見てください。'); render(); }
+    function feedback(title,text,warn=false){ const el=document.getElementById('feedback'); el.className='feedback'+(warn?' warn':''); el.innerHTML='<strong>'+escapeHtml(title)+'</strong><p>'+escapeHtml(text)+'</p>'; }
+    function select(id){ state.selected=id; render(); }
+    function mutate(action){ const m=state.messages.find(x=>x.id===state.selected); if(!m)return;
+      if(action==='star'){m.starred=!m.starred;feedback('スター',m.starred?'対応が必要な印を付けました。優先トレイの「スター付き」に表示されます。':'スターを外しました。');}
+      if(action==='protect'){m.protected=!m.protected;feedback('保護ラベル',m.protected?'保存したい記録として印を付けました。受信トレイから外してもメールは残ります。':'保護ラベルを外しました。');}
+      if(action==='read'){m.unread=false;feedback('既読に変更','メールを開かずに既読にしました。スターとは別の状態です。');}
+      if(action==='archive'){m.inbox=false;feedback('アーカイブ',m.needsAction?'受信トレイから消えました。未対応の重要連絡なので、見落とし候補に数えています。':'受信トレイから外しました。メール自体は保持されます。',m.needsAction);}
+      if(action==='delete'){m.deleted=true;m.inbox=false;feedback('削除',m.needsAction||m.protected?'重要な可能性のあるメールを削除しました。実際のGmailでは慎重に確認してください。':'この架空メールを削除しました。',m.needsAction||m.protected);}
+      render();
+    }
+    function stopList(list){state.stopped.add(list);feedback('配信リストだけ停止','次の週には、このリストの販促メールが届きません。同じ差出人の注文確認は残ります。');render();}
+    function stopSender(address){state.senderStopped.add(address);feedback('送信者をまとめて停止','この差出人の翌週のメールを迷惑メール扱いにしました。注文確認も見落とす危険があります。',true);render();}
+    function quietList(list){state.quiet.add(list);feedback('後で読む','次の週、この配信のメールは受信トレイをスキップして保存されます。');render();}
+    function receiveWeek(){if(state.week)return;state.week=true;let suppressed=0,hidden=0;for(const item of clone(future)){if(state.senderStopped.has(item.address)){item.spam=true;item.inbox=false;hidden++;}else if(item.list&&state.stopped.has(item.list)){suppressed++;continue;}else if(item.list&&(state.quiet.has(item.list)||(item.list==='journal'&&document.getElementById('quiet-news').checked))){item.inbox=false;item.quiet=true;}state.messages.unshift(item);}document.getElementById('next-week').disabled=true;feedback('次の週を受信',`停止した配信で${suppressed}通を減らし、送信者一括停止で${hidden}通が迷惑メール側に移りました。見落とし候補も確認してください。`,hidden>0);render();}
+    function render(){
+      const inbox=state.messages.filter(m=>m.inbox&&!m.deleted&&!m.spam);
+      const risk=state.messages.filter(m=>m.needsAction&&!m.inbox&&(!m.deleted||m.spam)).length+state.messages.filter(m=>m.needsAction&&m.deleted).length;
+      document.getElementById('stat-inbox').textContent=inbox.length;
+      document.getElementById('stat-unread').textContent=inbox.filter(m=>m.unread).length;
+      document.getElementById('stat-stopped').textContent=state.stopped.size+state.senderStopped.size;
+      document.getElementById('stat-risk').textContent=risk;
+      document.getElementById('risk-card').classList.toggle('alert',risk>0);
+      document.getElementById('mailbox-count').textContent=inbox.length+'通';
+      const tabs=document.getElementById('tabs');tabs.hidden=state.view!=='category';
+      const categories=[['primary','メイン'],['updates','更新'],['promotions','プロモーション']];
+      tabs.innerHTML=categories.map(([value,label])=>`<button type="button" data-tab="${value}" class="${state.tab===value?'active':''}" aria-pressed="${state.tab===value}">${label}</button>`).join('');
+      const row=m=>`<button type="button" class="mail ${m.unread?'unread':''} ${state.selected===m.id?'selected':''}" data-mail="${m.id}" aria-label="${escapeHtml(m.from+'、'+m.subject)}"><span>${m.starred?'★':m.unread?'●':'○'}</span><span class="who">${escapeHtml(m.from)}</span><span class="subject">${escapeHtml(m.subject)}</span><span class="tags">${m.protected?'<span class="tag protected">保護</span>':''}${m.important?'<span class="tag important">重要</span>':''}${m.starred?'<span class="tag starred">スター</span>':''}</span></button>`;
+      let html='';
+      if(state.view==='priority'){const sections=[['重要な未読',inbox.filter(m=>m.important&&m.unread)],['スター付き',inbox.filter(m=>m.starred&&!(m.important&&m.unread))],['その他',inbox.filter(m=>!(m.important&&m.unread)&&!m.starred)]];html=sections.filter(([,items])=>items.length).map(([name,items])=>`<div class="group-title">${name} · ${items.length}通</div>${items.map(row).join('')}`).join('');}
+      else if(state.view==='category'){html=inbox.filter(m=>m.category===state.tab).map(row).join('');}
+      else {html=[...inbox].sort((a,b)=>Number(b.unread)-Number(a.unread)).map(row).join('');}
+      document.getElementById('mail-list').innerHTML=html||'<div class="empty">この表示にはメールがありません。</div>';
+      const m=state.messages.find(x=>x.id===state.selected);
+      document.getElementById('detail').innerHTML=m?`<h2>${escapeHtml(m.subject)}</h2><div class="from">${escapeHtml(m.from)} &lt;${escapeHtml(m.address)}&gt; · ${m.list?'配信リスト: '+escapeHtml(m.list):'個別のメール'}</div><p class="body">${escapeHtml(m.body)}</p><div class="actions"><button class="btn small" data-action="star">${m.starred?'★ スターを外す':'☆ スターを付ける'}</button><button class="btn small" data-action="protect">${m.protected?'保護を外す':'保護する'}</button><button class="btn small" data-action="read" ${!m.unread?'disabled':''}>既読にする</button><button class="btn small" data-action="archive" ${!m.inbox?'disabled':''}>アーカイブ</button><button class="btn small danger" data-action="delete" ${m.deleted?'disabled':''}>削除</button></div>${m.address==='news@sample-shop.example'?'<p class="notice">この差出人は販促と領収書の両方に使われています。送信者をまとめて止めると、必要な通知を見落とす可能性があります。</p>':''}`:'<p class="muted">メールを選択してください。</p>';
+      const sub=[{name:'サンプル商店',address:'news@sample-shop.example',list:'shop-news',note:'販促2通＋注文の領収書1通'},{name:'週刊サンプル',address:'weekly@sample-journal.example',list:'journal',note:'読み物1通'}];
+      document.getElementById('subscriptions').innerHTML=sub.map(x=>`<div class="subscription"><div><strong>${x.name}</strong><small>${x.note}</small></div><div class="controls"><button type="button" class="btn small" data-stop-list="${x.list}" ${state.stopped.has(x.list)?'disabled':''}>この配信だけ停止</button><button type="button" class="btn small" data-quiet-list="${x.list}" ${state.quiet.has(x.list)?'disabled':''}>後で読む</button><button type="button" class="btn small danger" data-stop-sender="${x.address}" ${state.senderStopped.has(x.address)?'disabled':''}>送信者を一括停止</button></div></div>`).join('');
+    }
+    document.getElementById('reset').addEventListener('click',reset);
+    document.getElementById('next-week').addEventListener('click',receiveWeek);
+    document.getElementById('quiet-news').addEventListener('change',()=>{feedback('新着ルールを変更','「次の週を受信」を押すと、読み物の受信位置が変わります。');render();});
+    document.querySelectorAll('input[name="view"]').forEach(x=>x.addEventListener('change',e=>{state.view=e.target.value;feedback('表示方法を変更','メールは削除されていません。表示順・表示場所だけが変わりました。');render();}));
+    document.addEventListener('click',e=>{const target=e.target.closest('[data-mail],[data-tab],[data-action],[data-stop-list],[data-stop-sender],[data-quiet-list]');if(!target)return;if(target.dataset.mail)select(target.dataset.mail);else if(target.dataset.tab){state.tab=target.dataset.tab;render();}else if(target.dataset.action)mutate(target.dataset.action);else if(target.dataset.stopList)stopList(target.dataset.stopList);else if(target.dataset.stopSender)stopSender(target.dataset.stopSender);else if(target.dataset.quietList)quietList(target.dataset.quietList);});
+    reset();
+  </script>
+</body>
+</html>

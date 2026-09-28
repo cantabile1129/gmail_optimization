@@ -1,0 +1,6 @@
+{
+  "protect_keywords": ["請求", "領収", "注文", "予約", "認証", "セキュリティ", "invoice", "receipt", "verification", "security"],
+  "promo_keywords": ["セール", "クーポン", "割引", "sale", "coupon", "discount"],
+  "protected_senders": [],
+  "min_unsubscribe_count": 2
+}

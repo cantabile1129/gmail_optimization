@@ -1,0 +1,9 @@
+[
+  {"id":"d1","from":"News <news@sample-shop.example>","subject":"秋のセール","list_id":"shop-news.example","labels":["INBOX","UNREAD","CATEGORY_PROMOTIONS"]},
+  {"id":"d2","from":"News <news@sample-shop.example>","subject":"クーポンのお知らせ","list_id":"shop-news.example","labels":["INBOX","CATEGORY_PROMOTIONS"]},
+  {"id":"d3","from":"News <news@sample-shop.example>","subject":"会員限定セール","list_id":"shop-news.example","labels":["INBOX","UNREAD","CATEGORY_PROMOTIONS"]},
+  {"id":"d4","from":"News <news@sample-shop.example>","subject":"注文確認のお知らせ","labels":["INBOX","UNREAD","CATEGORY_UPDATES"]},
+  {"id":"d5","from":"Editorial <weekly@sample-journal.example>","subject":"今週の記事","list_id":"weekly.sample-journal.example","labels":["INBOX","UNREAD"]},
+  {"id":"d6","from":"Support <notice@sample-bank.example>","subject":"セキュリティ通知","labels":["INBOX","IMPORTANT","UNREAD"]},
+  {"id":"d7","from":"Friend <friend@example.net>","subject":"来週の予定","labels":["INBOX","CATEGORY_PERSONAL"]}
+]
